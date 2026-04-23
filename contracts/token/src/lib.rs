@@ -9,6 +9,7 @@ mod test;
 pub use errors::TokenError;
 pub use storage::{AllowanceDataKey, DataKey, MetadataKey};
 use soroban_sdk::{
+    contract, contractimpl, contracttype, contracterror, panic_with_error, token, Address, Env, String, Symbol,
     contract, contracterror, contractimpl, contracttype, token, Address, Env, String, Symbol,
 };
 use soroban_sdk::token::TokenInterface;
@@ -305,7 +306,9 @@ impl TokenContract {
 
     fn transfer(env: Env, from: Address, to: Address, amount: i128) {
         from.require_auth();
-        Self::transfer_impl(env, from, to, amount).unwrap();
+        if let Err(e) = Self::transfer_impl(env.clone(), from, to, amount) {
+            panic_with_error!(&env, e);
+        }
     }
 
     pub fn transfer_from(env: Env, spender: Address, from: Address, to: Address, amount: i128) {
@@ -323,6 +326,10 @@ impl TokenContract {
 
         env.storage().temporary().set(&key, &(allowance - amount));
 
+        // Perform transfer
+        if let Err(e) = Self::transfer_impl(env.clone(), from, to, amount) {
+            panic_with_error!(&env, e);
+        }
         Self::transfer_impl(env, from, to, amount).unwrap();
     }
 }
