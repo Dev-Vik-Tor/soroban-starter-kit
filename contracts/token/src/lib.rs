@@ -1,7 +1,7 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contractimpl, contracttype, token, Address, Env, String, Symbol,
+    contract, contractimpl, contracttype, contracterror, panic_with_error, token, Address, Env, String, Symbol,
 };
 
 /// Token contract implementing the Soroban Token Interface
@@ -39,7 +39,8 @@ pub enum MetadataKey {
 }
 
 /// Custom errors for the token contract
-#[contracttype]
+#[contracterror]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum TokenError {
     InsufficientBalance = 1,
     InsufficientAllowance = 2,
@@ -237,7 +238,7 @@ impl token::Interface for TokenContract {
         // Check allowance
         let allowance = Self::allowance(env.clone(), from.clone(), spender.clone());
         if allowance < amount {
-            panic!("Insufficient allowance");
+            panic_with_error!(&env, TokenError::InsufficientAllowance);
         }
 
         // Update allowance
